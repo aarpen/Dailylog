@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0d0d0d">
+<title>Second Brain</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#0d0d0d;
+  --surface:#161616;
+  --surface2:#1e1e1e;
+  --border:#272727;
+  --accent:#c8f060;
+  --accent2:#60c8f0;
+  --text:#efefef;
+  --dim:#666;
+  --dimmer:#333;
+  --r:14px;
+  --safe-b:env(safe-area-inset-bottom,0px);
+}
+
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;overflow:hidden;-webkit-tap-highlight-color:transparent;user-select:none}
+
+.app{height:100dvh;display:flex;flex-direction:column}
+
+/* HEADER */
+.hdr{
+  padding:48px 20px 12px;
+  display:flex;align-items:flex-end;justify-content:space-between;
+  flex-shrink:0;
+}
+.hdr-title{font-size:28px;font-weight:800;letter-spacing:-1px;line-height:1}
+.hdr-title em{color:var(--accent);font-style:normal}
+.hdr-date{font-family:'DM Mono',monospace;font-size:10px;color:var(--dim);margin-top:3px}
+.hdr-right{display:flex;gap:8px;align-items:center}
+.total-pill{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:100px;padding:5px 11px;
+  font-family:'DM Mono',monospace;font-size:11px;font-weight:500;color:var(--accent)
+}
+.export-btn{
+  background:none;border:1px solid var(--border);border-radius:100px;
+  padding:5px 12px;font-family:'Syne',sans-serif;font-size:11px;font-weight:600;
+  color:var(--dim);cursor:pointer;transition:all .15s
+}
+.export-btn:active{background:var(--surface2)}
+
+/* SCROLL */
+.feed{
+  flex:1;overflow-y:auto;overflow-x:hidden;
+  padding:8px 16px 0;
+  -webkit-overflow-scrolling:touch;
+  scroll-padding-bottom:20px;
+}
+.feed::-webkit-scrollbar{display:none}
+
+/* EMPTY */
+.empty{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  height:100%;gap:10px;padding-bottom:80px;
+}
+.empty-icon{font-size:40px}
+.empty p{font-size:13px;color:var(--dim);text-align:center;line-height:1.7}
+.empty strong{color:var(--accent);font-family:'DM Mono',monospace;font-weight:400}
+
+/* TASK CARD */
+.card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r);padding:14px 44px 12px 14px;
+  margin-bottom:1px;position:relative;
+  animation:pop .3s cubic-bezier(.34,1.4,.64,1);
+}
+@keyframes pop{from{transform:translateY(12px) scale(.97);opacity:0}to{transform:none;opacity:1}}
+
+.card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.card-name{font-size:15px;font-weight:600;line-height:1.3;flex:1;word-break:break-word}
+.card-dur{
+  font-family:'DM Mono',monospace;font-size:12px;font-weight:500;
+  white-space:nowrap;flex-shrink:0;padding-top:2px
+}
+.card-time{
+  font-family:'DM Mono',monospace;font-size:10px;color:var(--dim);margin-top:5px
+}
+.card-comment{
+  margin-top:8px;padding:8px 10px;background:var(--surface2);
+  border-radius:8px;font-size:12px;color:var(--dim);line-height:1.5;
+  font-style:italic;border-left:2px solid var(--border)
+}
+.card-del{
+  position:absolute;top:10px;right:10px;background:none;border:none;
+  color:var(--dimmer);font-size:18px;cursor:pointer;padding:2px 6px;
+  line-height:1;border-radius:6px;transition:color .15s
+}
+.card-del:active{color:#ff4444}
+
+/* EDIT OVERLAY on card */
+.card-edit-row{
+  display:flex;gap:6px;margin-top:10px;align-items:center;
+}
+.card-edit-input{
+  flex:1;background:var(--surface2);border:1px solid var(--accent);
+  border-radius:8px;padding:6px 10px;color:var(--text);
+  font-family:'DM Mono',monospace;font-size:12px;outline:none;
+  -webkit-appearance:none;
+}
+.card-edit-save{
+  background:var(--accent);color:#0d0d0d;border:none;border-radius:8px;
+  padding:6px 12px;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;cursor:pointer
+}
+
+.connector{height:1px;background:var(--border);margin:0 14px;opacity:.4}
+
+/* INPUT BAR */
+.input-bar{
+  flex-shrink:0;
+  padding:10px 14px calc(10px + var(--safe-b));
+  background:linear-gradient(0deg,var(--bg) 60%,transparent);
+  display:flex;flex-direction:column;gap:8px;
+}
+
+/* TIME ROW above input */
+.time-row{
+  display:flex;align-items:center;gap:8px;
+  padding:0 2px;
+}
+.time-label{font-family:'DM Mono',monospace;font-size:10px;color:var(--dim)}
+.time-val{
+  font-family:'DM Mono',monospace;font-size:10px;color:var(--accent);
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:6px;padding:3px 8px;cursor:pointer;transition:border-color .15s
+}
+.time-val:active{border-color:var(--accent)}
+.time-val input[type=time]{
+  background:none;border:none;color:var(--accent);font-family:'DM Mono',monospace;
+  font-size:10px;outline:none;-webkit-appearance:none;width:56px;cursor:pointer
+}
+.time-sep{color:var(--dimmer);font-size:10px}
+.time-auto{font-family:'DM Mono',monospace;font-size:9px;color:var(--dimmer)}
+
+/* MAIN INPUT ROW */
+.input-row{
+  display:flex;align-items:center;gap:10px;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:100px;padding:4px 4px 4px 16px;
+  transition:border-color .2s;
+}
+.input-row:focus-within{border-color:var(--accent)44}
+
+.main-input{
+  flex:1;background:none;border:none;color:var(--text);
+  font-family:'Syne',sans-serif;font-size:15px;outline:none;
+  -webkit-appearance:none;caret-color:var(--accent);
+  min-width:0;
+}
+.main-input::placeholder{color:var(--dimmer)}
+
+.comment-btn{
+  background:none;border:none;color:var(--dim);cursor:pointer;
+  padding:8px;font-size:16px;line-height:1;border-radius:50%;transition:color .15s
+}
+.comment-btn:active{color:var(--accent2)}
+
+.send-btn{
+  width:44px;height:44px;border-radius:50%;background:var(--accent);
+  border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:transform .15s cubic-bezier(.34,1.56,.64,1);flex-shrink:0
+}
+.send-btn:active{transform:scale(.88)}
+
+/* COMMENT EXPAND */
+.comment-expand{
+  display:none;padding:0 2px;
+}
+.comment-expand.open{display:block}
+.comment-textarea{
+  width:100%;background:var(--surface2);border:1px solid var(--border);
+  border-radius:10px;padding:10px 12px;color:var(--text);
+  font-family:'Syne',sans-serif;font-size:14px;outline:none;
+  resize:none;height:64px;line-height:1.4;-webkit-appearance:none;
+  transition:border-color .2s
+}
+.comment-textarea:focus{border-color:var(--accent)44}
+.comment-textarea::placeholder{color:var(--dimmer)}
+
+/* EXPORT SHEET */
+.overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;
+  opacity:0;pointer-events:none;transition:opacity .3s;
+  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)
+}
+.overlay.open{opacity:1;pointer-events:all}
+.sheet{
+  position:fixed;bottom:0;left:0;right:0;
+  background:var(--surface);border-radius:22px 22px 0 0;
+  padding:0 18px calc(24px + var(--safe-b));
+  z-index:300;transform:translateY(100%);
+  transition:transform .35s cubic-bezier(.32,.72,0,1);
+  max-height:88dvh;overflow-y:auto
+}
+.sheet::-webkit-scrollbar{display:none}
+.sheet.open{transform:translateY(0)}
+.sheet-handle{width:32px;height:3px;background:var(--border);border-radius:2px;margin:10px auto 18px}
+.sheet-title{font-size:18px;font-weight:700;margin-bottom:14px;letter-spacing:-.5px}
+.sheet-title em{color:var(--accent);font-style:normal}
+.export-pre{
+  background:var(--surface2);border:1px solid var(--border);border-radius:10px;
+  padding:12px;margin-bottom:12px;max-height:240px;overflow-y:auto
+}
+.export-pre::-webkit-scrollbar{display:none}
+.export-pre pre{font-family:'DM Mono',monospace;font-size:11px;color:var(--dim);white-space:pre-wrap;line-height:1.7}
+.sheet-btn{
+  width:100%;border:none;border-radius:12px;padding:14px;
+  font-family:'Syne',sans-serif;font-size:15px;font-weight:700;cursor:pointer;
+  transition:transform .15s;margin-top:6px
+}
+.sheet-btn:active{transform:scale(.97)}
+.sheet-btn.primary{background:var(--accent);color:#0d0d0d}
+.sheet-btn.secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+
+/* TOAST */
+.toast{
+  position:fixed;top:56px;left:50%;
+  transform:translateX(-50%) translateY(-10px);
+  background:var(--accent);color:#0d0d0d;
+  padding:8px 18px;border-radius:100px;
+  font-size:12px;font-weight:700;font-family:'DM Mono',monospace;
+  z-index:999;opacity:0;transition:all .25s cubic-bezier(.34,1.56,.64,1);
+  pointer-events:none;white-space:nowrap
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="hdr">
+    <div>
+      <div class="hdr-title">Second <em>Brain</em></div>
+      <div class="hdr-date" id="hdrDate"></div>
+    </div>
+    <div class="hdr-right">
+      <div class="total-pill" id="totalPill">0m</div>
+      <button class="export-btn" onclick="openExport()">Export</button>
+    </div>
+  </div>
+
+  <div class="feed" id="feed">
+    <div class="empty" id="empty">
+      <div class="empty-icon">⚡</div>
+      <p>Finish something.<br>Type what you did.<br>Hit <strong>send</strong>.</p>
+    </div>
+  </div>
+
+  <div class="input-bar">
+    <div class="time-row">
+      <span class="time-label">from</span>
+      <span class="time-val"><input type="time" id="startTime"></span>
+      <span class="time-sep">→</span>
+      <span class="time-label">to</span>
+      <span class="time-val"><input type="time" id="endTime"></span>
+      <span class="time-auto" id="timeNote"></span>
+    </div>
+
+    <div class="comment-expand" id="commentExpand">
+      <textarea class="comment-textarea" id="commentInput" placeholder="Note, blocker, reflection…"></textarea>
+    </div>
+
+    <div class="input-row">
+      <input class="main-input" id="mainInput" type="text" placeholder="What did you just finish?" autocomplete="off" autocorrect="off" autocapitalize="sentences">
+      <button class="comment-btn" onclick="toggleComment()" title="Add note">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+      </button>
+      <button class="send-btn" onclick="logTask()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0d0d0d" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay" onclick="closeSheet()"></div>
+<div class="sheet" id="exportSheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">Export to <em>Obsidian</em></div>
+  <div class="export-pre"><pre id="exportPre"></pre></div>
+  <button class="sheet-btn primary" onclick="downloadMD()">Download .md</button>
+  <button class="sheet-btn secondary" onclick="copyMD()">Copy to clipboard</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'sb_v3';
+let tasks = [];
+let commentOpen = false;
+
+function getToday(){ return new Date().toISOString().split('T')[0]; }
+function toHHMM(d){ return d.toTimeString().slice(0,5); }
+function parseHHMM(s){ const [h,m]=s.split(':').map(Number);const d=new Date();d.setHours(h,m,0,0);return d; }
+function fmtTime(iso){ return new Date(iso).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true}); }
+function fmtDur(s,e){
+  const m=Math.round((new Date(e)-new Date(s))/60000);
+  if(m<1)return '<1m';
+  if(m<60)return m+'m';
+  const h=Math.floor(m/60),r=m%60;
+  return r?`${h}h ${r}m`:`${h}h`;
+}
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function load(){
+  try{
+    const raw=localStorage.getItem(STORAGE_KEY);
+    if(!raw)return;
+    tasks=JSON.parse(raw).filter(t=>t.date===getToday());
+  }catch(e){tasks=[];}
+}
+
+function save(){
+  try{
+    const raw=localStorage.getItem(STORAGE_KEY);
+    let all=raw?JSON.parse(raw):[];
+    all=all.filter(t=>t.date!==getToday());
+    localStorage.setItem(STORAGE_KEY,JSON.stringify([...all,...tasks]));
+  }catch(e){}
+}
+
+function updateTimes(){
+  const now=new Date();
+  document.getElementById('endTime').value=toHHMM(now);
+  if(tasks.length===0){
+    document.getElementById('startTime').value=toHHMM(now);
+    document.getElementById('timeNote').textContent='adjust start';
+  } else {
+    const last=[...tasks].sort((a,b)=>new Date(b.end)-new Date(a.end))[0];
+    document.getElementById('startTime').value=toHHMM(new Date(last.end));
+    document.getElementById('timeNote').textContent='auto';
+  }
+}
+
+function logTask(){
+  const name=document.getElementById('mainInput').value.trim();
+  if(!name){ showToast('Type what you did'); return; }
+  const sv=document.getElementById('startTime').value;
+  const ev=document.getElementById('endTime').value;
+  if(!sv||!ev){ showToast('Set times'); return; }
+  const start=parseHHMM(sv);
+  const end=parseHHMM(ev);
+  if(end<=start){ showToast('End must be after start'); return; }
+  const comment=document.getElementById('commentInput').value.trim();
+
+  tasks.push({
+    id:Date.now(),name,comment,
+    start:start.toISOString(),
+    end:end.toISOString(),
+    date:getToday()
+  });
+  save();
+  document.getElementById('mainInput').value='';
+  document.getElementById('commentInput').value='';
+  if(commentOpen) toggleComment();
+  updateTimes();
+  renderFeed();
+  showToast('Logged ✓');
+  // scroll feed to bottom
+  const feed=document.getElementById('feed');
+  setTimeout(()=>feed.scrollTo({top:feed.scrollHeight,behavior:'smooth'}),60);
+}
+
+function toggleComment(){
+  commentOpen=!commentOpen;
+  document.getElementById('commentExpand').classList.toggle('open',commentOpen);
+  if(commentOpen) setTimeout(()=>document.getElementById('commentInput').focus(),50);
+}
+
+function deleteTask(id){
+  tasks=tasks.filter(t=>t.id!==id);
+  save(); updateTimes(); renderFeed(); showToast('Removed');
+}
+
+function renderFeed(){
+  const feed=document.getElementById('feed');
+  feed.querySelectorAll('.card,.connector').forEach(el=>el.remove());
+  const empty=document.getElementById('empty');
+  if(tasks.length===0){ empty.style.display='flex'; updateTotal(); return; }
+  empty.style.display='none';
+  const sorted=[...tasks].sort((a,b)=>new Date(a.start)-new Date(b.start));
+  sorted.forEach((t,i)=>{
+    if(i>0){
+      const c=document.createElement('div');
+      c.className='connector';feed.appendChild(c);
+    }
+    feed.appendChild(makeCard(t));
+  });
+  updateTotal();
+}
+
+function makeCard(task){
+  // Assign a color per task based on id for variety
+  const colors=['#c8f060','#60c8f0','#f0a860','#c060f0','#f06060','#60f0a8'];
+  const color=colors[task.id%colors.length];
+  const el=document.createElement('div');
+  el.className='card';
+  el.innerHTML=`
+    <button class="card-del" onclick="deleteTask(${task.id})">×</button>
+    <div class="card-top">
+      <div class="card-name">${esc(task.name)}</div>
+      <div class="card-dur" style="color:${color}">${fmtDur(task.start,task.end)}</div>
+    </div>
+    <div class="card-time">${fmtTime(task.start)} → ${fmtTime(task.end)}</div>
+    ${task.comment?`<div class="card-comment">${esc(task.comment)}</div>`:''}
+    <div class="card-edit-row" id="edit-${task.id}" style="display:none">
+      <input class="card-edit-input" type="time" id="es-${task.id}" value="${toHHMM(new Date(task.start))}">
+      <span style="color:var(--dimmer);font-size:12px">→</span>
+      <input class="card-edit-input" type="time" id="ee-${task.id}" value="${toHHMM(new Date(task.end))}">
+      <button class="card-edit-save" onclick="saveEdit(${task.id})">ok</button>
+    </div>
+  `;
+  // tap time to edit
+  el.querySelector('.card-time').addEventListener('click',()=>{
+    const row=document.getElementById(`edit-${task.id}`);
+    row.style.display=row.style.display==='none'?'flex':'none';
+    if(row.style.display==='flex') row.querySelector('input').focus();
+  });
+  return el;
+}
+
+function saveEdit(id){
+  const t=tasks.find(x=>x.id===id);
+  if(!t)return;
+  const sv=document.getElementById(`es-${id}`).value;
+  const ev=document.getElementById(`ee-${id}`).value;
+  if(!sv||!ev)return;
+  const s=parseHHMM(sv), e=parseHHMM(ev);
+  if(e<=s){ showToast('End must be after start'); return; }
+  t.start=s.toISOString(); t.end=e.toISOString();
+  save(); updateTimes(); renderFeed(); showToast('Updated');
+}
+
+function updateTotal(){
+  const mins=tasks.reduce((a,t)=>a+Math.round((new Date(t.end)-new Date(t.start))/60000),0);
+  const el=document.getElementById('totalPill');
+  if(mins<60){el.textContent=mins+'m';return;}
+  const h=Math.floor(mins/60),m=mins%60;
+  el.textContent=m?`${h}h ${m}m`:`${h}h`;
+}
+
+// EXPORT
+function buildMD(){
+  const today=getToday();
+  const sorted=[...tasks].sort((a,b)=>new Date(a.start)-new Date(b.start));
+  let md=`# Daily Log — ${today}\n\n`;
+  md+=`| Time | Task | Duration |\n|------|------|----------|\n`;
+  sorted.forEach(t=>{
+    md+=`| ${fmtTime(t.start)} → ${fmtTime(t.end)} | ${t.name} | ${fmtDur(t.start,t.end)} |\n`;
+    if(t.comment) md+=`| | _${t.comment}_ | |\n`;
+  });
+  const total=tasks.reduce((a,t)=>a+Math.round((new Date(t.end)-new Date(t.start))/60000),0);
+  const h=Math.floor(total/60),m=total%60;
+  md+=`\n**Total:** ${total<60?total+'m':(m?`${h}h ${m}m`:`${h}h`)} across ${tasks.length} task${tasks.length!==1?'s':''}\n`;
+  return md;
+}
+
+function openExport(){
+  document.getElementById('exportPre').textContent=buildMD();
+  document.getElementById('exportSheet').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+
+function closeSheet(){
+  document.getElementById('exportSheet').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+}
+
+function downloadMD(){
+  const blob=new Blob([buildMD()],{type:'text/markdown'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=`${getToday()}.md`;a.click();
+  URL.revokeObjectURL(url);
+  showToast('Downloaded ✓');
+}
+
+function copyMD(){
+  navigator.clipboard.writeText(buildMD())
+    .then(()=>{showToast('Copied ✓');closeSheet();})
+    .catch(()=>showToast('Try download'));
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2000);
+}
+
+// ENTER to log
+document.getElementById('mainInput').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){e.preventDefault();logTask();}
+});
+
+// Init
+load();
+document.getElementById('hdrDate').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+updateTimes();
+renderFeed();
+
+// Refresh "end time = now" every minute
+setInterval(()=>{
+  document.getElementById('endTime').value=toHHMM(new Date());
+},30000);
+</script>
+</body>
+</html>
